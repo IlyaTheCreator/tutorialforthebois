@@ -1,37 +1,151 @@
-## Welcome to GitHub Pages
+# Привет пацаны
 
-You can use the [editor on GitHub](https://github.com/IlyaTheCreator/tutorialforthebois/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+Нашел очень интересную вещь в ts. Думаю, вам стоит заценить. 
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Тема: Convenience generic 
 
-### Markdown
+Сразу к примерам, чего булки мять.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+Функция, которая "разворачивает" массив. Vanilla JS:
+```javascript
+function reverse(items) {
+  const turnedArr = [];
 
-```markdown
-Syntax highlighted code block
+  for (let i = items.length - 1; i >= 0; i--) {
+    turnedArr.push(items[i]);
+  }
 
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+  return turnedArr;
+}
 ```
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+Теперь интересно. На ts:
+```typescript
+function reverse<T>(items: T[]): T[] {
+  const turnedArr = [];
 
-### Jekyll Themes
+  for (let i = items.length - 1; i >= 0; i--) {
+    turnedArr.push(items[i]);
+  }
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/IlyaTheCreator/tutorialforthebois/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+  return turnedArr;
+}
+```
 
-### Support or Contact
+***
+Вопрос: че это за хрень: ```reverse<T>```. А вот, функции тоже могут принимать generic'и, прямо как типы и массивы.
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+(Пример, чтобы освежить память):
+```typescript
+type MyArrayType<T> = {
+  items: T[];
+};
+// or 
+interface MyArrayType<T> {
+  items: T[];
+}
+```
+
+**Суть** в том, что мы можем создавать типизированные функции, в которые бы только один раз пропишем тип, и он будет использоваться и как тип в аргументах, и как возвращаемый тип. 
+
+Возвращаясь к примеру на ts, generic после названия функции (reverse) - это как бы его объявление. Дальше мы можем его использовать в типах аргументов, в возвращаемом типе и в теле функции. 
+
+Из-за generic'а эта функция может принимать массив любого типа.
+
+Можно использовать явно:
+```typescript
+console.log(reverse<number>([1, 2, 3])) // [3, 2, 1]
+```
+
+А можно предоставить определение типа самому ts:
+```typescript
+console.log(reverse([1, 2, 3])) // [3, 2, 1] | работает так же
+```
+
+***
+
+## Момент со стрелочными функциями
+Просто так не получится, ts выкинет ошибку.
+```typescript
+const reverse = <T>(items: T[]) => {...}
+```
+Туторы предлагают делать так (и оно норм):
+```typescript
+const reverse = <T extends unknown>(items: T[]) => {...}
+// or 
+const reverse = <T extends {}>(items: T[]) => {...}
+// or
+const reverse = <T,>(items: T[]) => {...} // the best
+
+```
+
+***
+## Примеры
+
+### Тупо вернуть, что принимаем
+```typescript
+const foo = <T,>(x: T) => x;
+```
+
+### Функция, возвращающая *json response*
+
+```typescript
+// через async await
+const getJSON = async <T,>(url: string): Promise<T> => {
+  const res = await fetch(url);
+  return await res.json();
+}
+
+// через promise chaining
+const getJSON = <T,>(url: string): Promise<T> => {
+  return fetch(url)
+    .then<T>(res => res.json());
+}
+
+// Usage
+interface Item {
+  id: number;
+  name: string;
+  isCompleted: boolean;
+  parentId?: number;
+  children: Item[];
+}
+
+const apiResponse = getJSON<Item>("http://localhost:8080/items/2");
+```
+
+### Компонент-таблица в react, котоая рендерит что угодно
+```typescript
+interface ITableProps<TItem> {
+  items: TItem[];
+  renderItem: (item: TItem) => React.ReactNode;
+}
+
+// нужно именно так, через React.FC не выйдет, т.к требуется generic, а мы его еще не написали
+export const Table = <TItem, >(props: TableProps<TItem>) => {
+  return null;
+}
+
+export const SomeComponent = () => {
+  return (
+    <>
+      <Table 
+        items={[ { id: 1, firstName: "iluha" }]}
+        renderItems={(item) => {
+          return null;
+        }}
+      />
+      <Table 
+        items={[ { id: 1, species: "rabbit" }]}
+        renderItems={(item) => {
+          return null;
+        }}
+      />
+    </Table>
+  );
+}
+```
+
+## Ресурсы
+* https://basarat.gitbook.io/typescript/type-system/generics#design-pattern-convenience-generic
+* https://www.youtube.com/watch?v=hBk4nV7q6-w
